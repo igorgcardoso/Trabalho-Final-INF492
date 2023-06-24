@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "trabalho"
+version = "0.1.0"
+description = ""
+authors = ["Igor Cardoso <igorgcardoso7@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10,<3.12"
+opencv-contrib-python = "^4.7.0.72"
+torch = "^2.0.0"
+pillow = "^9.4.0"
+jupyter = "^1.0.0"
+torchvision = "^0.15.1"
+matplotlib = "^3.7.1"
+tqdm = "^4.65.0"
+scipy = "^1.10.1"
+scikit-learn = "^1.2.2"
+scikit-image = "^0.20.0"
+pandas = "^2.0.1"
+tensorboard = "^2.12.3"
+tensorboardx = "^2.6"
+torch-tb-profiler = "^0.4.1"
+torchinfo = "^1.7.2"
+torch-summary = "^1.4.5"
+torchmetrics = "^0.11.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -9,20 +9,26 @@ class HParams:
   # Image Params
   size: int = 128
 
-  # Model Params
-  input_c: int = 1
-  output_c: int = 2
-  generator_n_down: int = 8
-  num_filters: int = 64
-  discriminator_n_down: int = 3
+  # Generator Params
+  generator_input_channels: int = 1
+  generator_output_channels: int = 2
+  generator_num_down: int = 6
+  generator_num_filters: int = 64
+
+  # Discriminator Params
+  discriminator_input_channels: int = 3
+  discriminator_num_layers: int = 3
+  discriminator_num_filters_last_layer: int = 32
 
   # Training Params
-  batch_size: int = 32
-  lr_g: float = 2e-4
-  lr_d: float = 2e-4
+  batch_size: int = 16
+  lr_generator: float = 2e-5
+  lr_discriminator: float = 2e-5
   betas: Tuple[float] = (0.5, 0.999)
-  lambda_L1: float = 100.0
-  epochs: int = 50
+  lambda_L1: float = 50.0
+  epochs: int = 10
+  threshold: float = 1  # Generator loss threshold to stop training
 
   # Misc
   device = 'cuda' if torch.cuda.is_available() else 'cpu'
+  visualization_interval: int = 250
