@@ -1,3 +1,5 @@
+from atexit import register
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
@@ -14,22 +16,24 @@ from models import GANLoss, NLayerDiscriminator, UnetGenerator
 
 train_loader, val_loader = make_dataloaders()
 
+hparams = HParams()
+
 generator = UnetGenerator(
-    HParams.generator_input_channels,
-    HParams.generator_output_channels,
-    HParams.generator_num_down,
-    HParams.generator_num_filters
-).to(HParams.device)
-optimizer_generator = torch.optim.AdamW(generator.parameters(), lr=HParams.lr_generator, betas=HParams.betas)
+    hparams.generator_input_channels,
+    hparams.generator_output_channels,
+    hparams.generator_num_down,
+    hparams.generator_num_filters
+).to(hparams.device)
+optimizer_generator = torch.optim.AdamW(generator.parameters(), lr=hparams.lr_generator, betas=hparams.betas)
 
 discriminator = NLayerDiscriminator(
-    HParams.discriminator_input_channels,
-    HParams.discriminator_num_filters_last_layer,
-    HParams.discriminator_num_layers
-).to(HParams.device)
-optimizer_discriminator = torch.optim.AdamW(discriminator.parameters(), lr=HParams.lr_discriminator, betas=HParams.betas)
+    hparams.discriminator_input_channels,
+    hparams.discriminator_num_filters_last_layer,
+    hparams.discriminator_num_layers
+).to(hparams.device)
+optimizer_discriminator = torch.optim.AdamW(discriminator.parameters(), lr=hparams.lr_discriminator, betas=hparams.betas)
 
-GANCriterion = GANLoss().to(HParams.device)
+GANCriterion = GANLoss().to(hparams.device)
 L1Criterion = torch.nn.L1Loss()
 
 tensorboard_root = Path(__file__).parent / 'tensorboard'
@@ -65,8 +69,8 @@ def estimate_loss():
     discriminator_loss = torch.zeros(len(val_loader))
 
     for eval_step, data in enumerate(tqdm(val_loader, leave=False, desc='Evaluation')):
-        real_A = data['A'].to(HParams.device)
-        real_B = data['B'].to(HParams.device)
+        real_A = data['A'].to(hparams.device)
+        real_B = data['B'].to(hparams.device)
 
         fake_B = generator(real_A)
 
@@ -82,7 +86,7 @@ def estimate_loss():
         fake_AB = torch.cat([real_A, fake_B], dim=1)
         fake_pred = discriminator(fake_AB)
         loss_generator_gan = GANCriterion(fake_pred, True)
-        loss_generator_l1 = L1Criterion(fake_B, real_B) * HParams.lambda_L1
+        loss_generator_l1 = L1Criterion(fake_B, real_B) * hparams.lambda_L1
         generator_loss[eval_step] = (loss_generator_gan + loss_generator_l1).item()
 
     generator.train()
@@ -94,14 +98,17 @@ def estimate_loss():
 best_loss_generator = float('inf')
 best_loss_discriminator = float('inf')
 
+step = 0
 
-for epoch in range(HParams.epochs):
-    for i, data in enumerate(tqdm(train_loader, leave=False, desc=f'Epoch {epoch}/{HParams.epochs}')):
+@register
+def cleanup():
+    writer.add_hparams(asdict(hparams), {'hparams/loss_generator': best_loss_generator, 'hparams/loss_discriminator': best_loss_discriminator}, global_step=step)
 
-        step = epoch * len(train_loader) + i
+for epoch in range(hparams.epochs):
+    for i, data in enumerate(tqdm(train_loader, leave=False, desc=f'Epoch {epoch}/{hparams.epochs}')):
 
-        real_A = data['A'].to(HParams.device)
-        real_B = data['B'].to(HParams.device)
+        real_A = data['A'].to(hparams.device)
+        real_B = data['B'].to(hparams.device)
 
         fake_B = generator(real_A)
 
@@ -125,7 +132,7 @@ for epoch in range(HParams.epochs):
         fake_pred = discriminator(fake_AB)
 
         loss_generator_gan = GANCriterion(fake_pred, True)
-        loss_generator_l1 = L1Criterion(fake_B, real_B) * HParams.lambda_L1
+        loss_generator_l1 = L1Criterion(fake_B, real_B) * hparams.lambda_L1
         loss_generator = loss_generator_gan + loss_generator_l1
         loss_generator.backward()
         optimizer_generator.step()
@@ -134,8 +141,10 @@ for epoch in range(HParams.epochs):
 
         writer.add_scalar('train/generator', loss_generator.item(), step)
 
-        if step % HParams.visualization_interval == 0:
+        if step % hparams.visualization_interval == 0:
             writer.add_image('images', convert2rgb_and_return_grid(real_A, real_B, fake_B), step)
+
+        step += 1
 
     loss_generator, loss_discriminator = estimate_loss()
     writer.add_scalar('val/generator', loss_generator, step)

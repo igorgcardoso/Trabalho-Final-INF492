@@ -22,12 +22,11 @@ class HParams:
 
   # Training Params
   batch_size: int = 16
-  lr_generator: float = 2e-5
-  lr_discriminator: float = 2e-5
+  lr_generator: float = 2e-4
+  lr_discriminator: float = 2e-6
   betas: Tuple[float] = (0.5, 0.999)
-  lambda_L1: float = 50.0
-  epochs: int = 10
-  threshold: float = 1  # Generator loss threshold to stop training
+  lambda_L1: float = 3.5
+  epochs: int = 5
 
   # Misc
   device = 'cuda' if torch.cuda.is_available() else 'cpu'

@@ -119,27 +119,27 @@ class NLayerDiscriminator(nn.Module):
             nn.LeakyReLU(0.2, True)
         ]
 
-        nf_mult = 1
-        nf_mult_prev = 1
+        filter_scale = 1
+        filter_scale_prev = 1
         for n in range(1, num_layers):
-            nf_mult_prev = nf_mult
-            nf_mult = min(2 ** n, 8)
+            filter_scale_prev = filter_scale
+            filter_scale = min(2 ** n, 8)
             model += [
-                nn.Conv2d(num_filter_last_layer * nf_mult_prev, num_filter_last_layer * nf_mult, kernel_size=kernel_size, stride=1, padding=padding, bias=False),
-                nn.BatchNorm2d(num_filter_last_layer * nf_mult),
+                nn.Conv2d(num_filter_last_layer * filter_scale_prev, num_filter_last_layer * filter_scale, kernel_size=kernel_size, stride=1, padding=padding, bias=False),
+                nn.BatchNorm2d(num_filter_last_layer * filter_scale),
                 nn.LeakyReLU(0.2, True)
             ]
 
-        nf_mult_prev = nf_mult
-        nf_mult = min(2 ** num_layers, 8)
+        filter_scale_prev = filter_scale
+        filter_scale = min(2 ** num_layers, 8)
         model += [
-            nn.Conv2d(num_filter_last_layer * nf_mult_prev, num_filter_last_layer * nf_mult, kernel_size=kernel_size, stride=1, padding=padding, bias=False),
-            nn.BatchNorm2d(num_filter_last_layer * nf_mult),
+            nn.Conv2d(num_filter_last_layer * filter_scale_prev, num_filter_last_layer * filter_scale, kernel_size=kernel_size, stride=1, padding=padding, bias=False),
+            nn.BatchNorm2d(num_filter_last_layer * filter_scale),
             nn.LeakyReLU(0.2, True)
         ]
 
         model += [
-            nn.Conv2d(num_filter_last_layer * nf_mult, 1, kernel_size=kernel_size, stride=1, padding=padding)
+            nn.Conv2d(num_filter_last_layer * filter_scale, 1, kernel_size=kernel_size, stride=1, padding=padding)
         ]  # output 1 channel prediction map
 
         self.model = nn.Sequential(*model)
