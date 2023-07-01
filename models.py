@@ -3,6 +3,14 @@ import torch
 from torch import nn
 
 
+def init_weights(m):
+    if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+        nn.init.normal_(m.weight, 0.0, 0.02)
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.normal_(m.weight, 1.0, 0.02)
+        nn.init.constant_(m.bias, 0)
+
+
 class UnetSkipConnectionBlock(nn.Module):
     """Defines the Unet submodule with skip connection.
     X -------------------identity----------------------
@@ -28,7 +36,9 @@ class UnetSkipConnectionBlock(nn.Module):
         if num_input_channels is None:
             num_input_channels = num_filter_outer
 
-        downconv = nn.Conv2d(num_input_channels, num_filter_inner, kernel_size=4, stride=2, padding=1, bias=False)
+        kernel_size = 4
+
+        downconv = nn.Conv2d(num_input_channels, num_filter_inner, kernel_size=kernel_size, stride=2, padding=1, bias=False)
         downrelu = nn.LeakyReLU(0.2, True)
         downnorm = norm_layer(num_filter_inner)
 
@@ -36,17 +46,17 @@ class UnetSkipConnectionBlock(nn.Module):
         upnorm = norm_layer(num_filter_outer)
 
         if outermost:
-            upconv = nn.ConvTranspose2d(num_filter_inner * 2, num_filter_outer, kernel_size=4, stride=2, padding=1)
+            upconv = nn.ConvTranspose2d(num_filter_inner * 2, num_filter_outer, kernel_size=kernel_size, stride=2, padding=1)
             down = [downconv]
             up = [uprelu, upconv, nn.Tanh()]
             model = down + [submodule] + up
         elif innermost:
-            upconv = nn.ConvTranspose2d(num_filter_inner, num_filter_outer, kernel_size=4, stride=2, padding=1, bias=False)
+            upconv = nn.ConvTranspose2d(num_filter_inner, num_filter_outer, kernel_size=kernel_size, stride=2, padding=1, bias=False)
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
             model = down + up
         else:
-            upconv = nn.ConvTranspose2d(num_filter_inner * 2, num_filter_outer, kernel_size=4, stride=2, padding=1, bias=False)
+            upconv = nn.ConvTranspose2d(num_filter_inner * 2, num_filter_outer, kernel_size=kernel_size, stride=2, padding=1, bias=False)
             down = [downrelu, downconv, downnorm]
             up = [uprelu, upconv, upnorm]
 
@@ -93,6 +103,8 @@ class UnetGenerator(nn.Module):
         unet_block = UnetSkipConnectionBlock(num_filter_outer * 2, num_filter_outer * 4, None, unet_block, norm_layer=norm_layer)
         unet_block = UnetSkipConnectionBlock(num_filter_outer, num_filter_outer * 2, None, unet_block, norm_layer=norm_layer)
         self.model = UnetSkipConnectionBlock(output_channels, num_filter_outer, input_channels, unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
+
+        self.apply(init_weights)
 
     def forward(self, x):
         return self.model(x)
@@ -143,6 +155,8 @@ class NLayerDiscriminator(nn.Module):
         ]  # output 1 channel prediction map
 
         self.model = nn.Sequential(*model)
+
+        self.apply(init_weights)
 
     def forward(self, x):
         return self.model(x)
