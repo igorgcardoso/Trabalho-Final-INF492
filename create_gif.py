@@ -2,7 +2,6 @@ from pathlib import Path
 
 import imageio
 import numpy as np
-from pygifsicle import optimize
 
 ROOT_DIR = Path(__file__).parent / 'generated'
 
@@ -16,6 +15,9 @@ def get_input(obj_list):
 def get_datasets():
     datasets = list(ROOT_DIR.glob('*'))
 
+    if len(datasets) == 1:
+        return datasets[0]
+
     input_dataset = get_input(datasets)
 
     return datasets[input_dataset]
@@ -23,6 +25,9 @@ def get_datasets():
 
 def get_runs(dataset: Path):
     runs = list(dataset.glob('*'))
+
+    if len(runs) == 1:
+        return runs[0]
 
     input_run = get_input(runs)
 
@@ -41,8 +46,6 @@ def main():
     gif_name = f'{dataset.name}_{run.name}.gif'
 
     imageio.v3.imwrite(gif_name, np.stack([imageio.v3.imread(img) for img in sorted(imgs)]), axis=0)
-
-    optimize(gif_name)
 
 
 if __name__ == '__main__':
